@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading Calendar</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:#f0f0ed;padding:20px;min-height:100vh}
+.wrap{border:1px solid #e0e0da;border-radius:12px;overflow:hidden;background:#fff;max-width:980px;margin:0 auto;box-shadow:0 2px 16px rgba(0,0,0,0.07)}
+
+.cal-header{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid #e8e8e4;background:#fff;flex-wrap:wrap;gap:8px}
+.nav-row{display:flex;align-items:center;gap:10px}
+.nbtn{background:#fff;border:1px solid #d0d0ca;border-radius:8px;padding:4px 13px;cursor:pointer;font-size:16px;color:#333}
+.nbtn:hover{background:#f5f5f2}
+.mlabel{font-size:16px;font-weight:700;min-width:140px;text-align:center;color:#1a1a1a}
+.hstats{display:flex;gap:16px;font-size:12px;align-items:center;flex-wrap:wrap}
+.hstats .lbl{color:#aaa;margin-right:2px}
+.pos{color:#1D9E75;font-weight:700}
+.neg{color:#D85A30;font-weight:700}
+.neu{color:#1a1a1a;font-weight:700}
+
+.grid6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr))}
+.dh{padding:7px 4px;text-align:center;font-size:11px;font-weight:700;color:#aaa;border-bottom:1px solid #e8e8e4;border-right:1px solid #e8e8e4;text-transform:uppercase;letter-spacing:.06em;background:#fafaf8}
+.dh:last-child{background:#f5f5f2;border-right:none}
+
+.cell{min-height:96px;border-bottom:1px solid #e8e8e4;border-right:1px solid #e8e8e4;padding:6px 8px;background:#fff}
+.cell.clickable{cursor:pointer}.cell.clickable:hover{background:#f8f8f5}
+.cell.win-day{background:#edf7e6}.cell.win-day:hover{background:#e0f2d5}
+.cell.loss-day{background:#fdf0ed}.cell.loss-day:hover{background:#fae3de}
+.cell.other{opacity:.25;pointer-events:none}
+.cell.sum-col{background:#f5f5f2;cursor:default;border-right:none}
+.cell.sum-col:hover{background:#f5f5f2}
+
+.dnum{font-size:11px;color:#bbb;font-weight:500}
+.ct{font-size:12px;font-weight:700;text-align:center;margin-top:5px}
+.cpl{font-size:15px;font-weight:800;text-align:center;margin-top:1px}
+.cmeta{font-size:10px;text-align:center;margin-top:2px;color:#999}
+.crr{font-size:11px;font-weight:700;text-align:center;margin-top:3px}
+
+.sl{font-size:10px;color:#aaa;margin-bottom:2px;font-weight:600}
+.sv{font-size:14px;font-weight:800}
+.sm{font-size:10px;color:#999;margin-top:2px}
+.srr{font-size:11px;font-weight:700;margin-top:3px}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:16px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:420px;box-shadow:0 12px 48px rgba(0,0,0,.2);overflow:hidden}
+
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #ebebeb}
+.modal-head h3{font-size:15px;font-weight:800;color:#1a1a1a}
+.xbtn{background:none;border:none;font-size:20px;cursor:pointer;color:#bbb;line-height:1}
+.xbtn:hover{color:#333}
+
+.dbar{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #ebebeb}
+.dbar-cell{padding:10px 8px;text-align:center;border-right:1px solid #ebebeb}
+.dbar-cell:nth-child(3),.dbar-cell:nth-child(6){border-right:none}
+.dbar-cell .dl{font-size:9px;font-weight:800;color:#bbb;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.dbar-cell .dv{font-size:14px;font-weight:800}
+
+.tlist-wrap{padding:10px 16px 0;max-height:130px;overflow-y:auto}
+.tlist-label{font-size:10px;font-weight:800;color:#bbb;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.titem{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #f0f0ec}
+.titem:last-child{border-bottom:none}
+.tsym{font-weight:800;font-size:12px;color:#1a1a1a;min-width:60px}
+.tpl{font-size:12px;font-weight:800;min-width:48px;text-align:right}
+.trr-val{font-size:11px;min-width:36px;text-align:right;font-weight:700}
+.tbadge{font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px}
+.tbadge.w{background:#e6f5dc;color:#2a7a1f}
+.tbadge.l{background:#fde8e4;color:#b03a1e}
+.dbtn{background:none;border:none;cursor:pointer;color:#ddd;font-size:16px;margin-left:auto;padding:0 4px}
+.dbtn:hover{color:#e05}
+.notrades{font-size:12px;color:#ccc;text-align:center;padding:10px 0}
+
+.form-wrap{padding:12px 16px 16px}
+.form-title{font-size:10px;font-weight:800;color:#bbb;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.frow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.fgroup{display:flex;flex-direction:column;gap:3px}
+.fgroup label{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em}
+.fgroup input{font-size:13px;padding:7px 9px;border:1.5px solid #e8e8e4;border-radius:8px;background:#fff;color:#1a1a1a;outline:none;width:100%}
+.fgroup input:focus{border-color:#1D9E75;background:#fafffe}
+.wl-label{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.wltog{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.wlb{padding:9px;border:1.5px solid #e8e8e4;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;background:#fafaf8;color:#bbb;transition:all .12s}
+.wlb:hover{border-color:#bbb;color:#555}
+.wlb.ws{background:#edf7e6;border-color:#1D9E75;color:#1D9E75}
+.wlb.ls{background:#fdf0ed;border-color:#D85A30;color:#D85A30}
+.addbtn{width:100%;padding:11px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:800}
+.addbtn:hover{background:#333}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="cal-header">
+    <div class="nav-row">
+      <button class="nbtn" onclick="chMo(-1)">&#8249;</button>
+      <span class="mlabel" id="mlabel"></span>
+      <button class="nbtn" onclick="chMo(1)">&#8250;</button>
+    </div>
+    <div class="hstats">
+      <span><span class="lbl">P/L:</span><span id="hpl" class="neu">0.0</span></span>
+      <span><span class="lbl">Trades:</span><span id="htrades" class="neu">0</span></span>
+      <span><span class="lbl">WR:</span><span id="hwr" class="neu">—</span></span>
+      <span><span class="lbl">Total RR:</span><span id="hrr" class="neu">—</span></span>
+    </div>
+  </div>
+  <div class="grid6" id="hdrs"></div>
+  <div class="grid6" id="cgrid"></div>
+</div>
+
+<div class="modal-bg" id="modal" onclick="bgClose(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="mtitle"></h3>
+      <button class="xbtn" onclick="closeModal()">&#215;</button>
+    </div>
+    <div class="dbar" id="dsum"></div>
+    <div class="tlist-wrap">
+      <div class="tlist-label">Trades</div>
+      <div id="tlist"></div>
+    </div>
+    <div class="form-wrap">
+      <div class="form-title">Add Trade</div>
+      <div class="frow">
+        <div class="fgroup"><label>Symbol</label><input id="isym" placeholder="EURUSD" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="fgroup"><label>P/L</label><input id="ipl" type="number" placeholder="500"></div>
+        <div class="fgroup"><label>RR</label><input id="irr" type="number" placeholder="1.5" step="0.1"></div>
+      </div>
+      <div class="wl-label">Result</div>
+      <div class="wltog">
+        <button class="wlb" id="wbtn" onclick="selWL('W')">&#10003; Win</button>
+        <button class="wlb" id="lbtn" onclick="selWL('L')">&#10005; Loss</button>
+      </div>
+      <button class="addbtn" onclick="addTrade()">+ Add Trade</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let yr=new Date().getFullYear(), mo=new Date().getMonth();
+let trades={}, selDate=null, wlSel='W';
+try{const s=localStorage.getItem('tcal6');if(s)trades=JSON.parse(s);}catch(e){}
+function save(){try{localStorage.setItem('tcal6',JSON.stringify(trades));}catch(e){}}
+function key(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function dayData(k){return trades[k]||[];}
+
+// RR for a loss trade is stored as negative (e.g. -0.5)
+// Total RR = sum of all RR values across trades
+function calcStats(list){
+  const pl=list.reduce((s,x)=>s+x.pl,0);
+  const wins=list.filter(x=>x.wl==='W').length;
+  const losses=list.filter(x=>x.wl==='L').length;
+  const rrList=list.filter(x=>x.rr!=null);
+  // Sum RR: win trades add positive RR, loss trades use their stored RR (negative)
+  const totalRR=rrList.length ? rrList.reduce((s,x)=>s+x.rr,0) : null;
+  return {count:list.length, pl, wins, losses, totalRR, hasRR:rrList.length>0};
+}
+
+function dayStats(k){return calcStats(dayData(k));}
+function fmt(v){if(Math.abs(v)>=1000)return (v/1000).toFixed(1)+'K';return v.toFixed(1);}
+function fmtRR(v){
+  if(v==null)return '—';
+  const s=v>=0?'+':'';
+  return s+v.toFixed(2)+'R';
+}
+function rrClass(v){return v==null?'neu':v>=0?'pos':'neg';}
+
+function buildRows(){
+  const first=new Date(yr,mo,1);
+  const dim=new Date(yr,mo+1,0).getDate();
+  let fdow=first.getDay();if(fdow===0)fdow=7;
+  const start=new Date(yr,mo,1-(fdow-1));
+  const rows=[];let cur=new Date(start);
+  while(true){
+    const week=[];
+    for(let d=0;d<5;d++)week.push(new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+d));
+    rows.push(week);
+    cur=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+7);
+    if(cur.getMonth()!==mo&&new Date(yr,mo,dim)<cur)break;
+  }
+  return rows;
+}
+
+function render(){
+  document.getElementById('mlabel').textContent=MN[mo]+' '+yr;
+  document.getElementById('hdrs').innerHTML=['Mon','Tue','Wed','Thu','Fri','Summary'].map(d=>`<div class="dh">${d}</div>`).join('');
+  const rows=buildRows();
+  const grid=document.getElementById('cgrid');
+  grid.innerHTML='';
+
+  let monthTrades=[];
+
+  rows.forEach(week=>{
+    const weekTrades=[];
+    week.forEach(date=>{
+      const isCur=date.getMonth()===mo;
+      const k=key(date);
+      const data=dayData(k);
+      const st=calcStats(data);
+      if(isCur){weekTrades.push(...data);monthTrades.push(...data);}
+
+      const cell=document.createElement('div');
+      let cls='cell'+(isCur?' clickable':' other');
+      if(isCur&&st.pl>0)cls+=' win-day';
+      else if(isCur&&st.pl<0)cls+=' loss-day';
+      cell.className=cls;
+
+      let html=`<div class="dnum">${date.getDate()}</div>`;
+      if(st.count>0){
+        html+=`<div class="ct ${st.pl>=0?'pos':'neg'}">${st.count}</div>`;
+        html+=`<div class="cpl ${st.pl>=0?'pos':'neg'}">${fmt(st.pl)}</div>`;
+        html+=`<div class="cmeta">${st.wins}W ${st.losses}L &middot; ${Math.round(st.wins/st.count*100)}%</div>`;
+        if(st.totalRR!=null)html+=`<div class="crr ${rrClass(st.totalRR)}">${fmtRR(st.totalRR)}</div>`;
+      }
+      cell.innerHTML=html;
+      if(isCur){const _k=k,_d=new Date(date);cell.onclick=()=>openModal(_k,_d);}
+      grid.appendChild(cell);
+    });
+
+    // Weekly summary
+    const ws=calcStats(weekTrades);
+    const sc=document.createElement('div');
+    sc.className='cell sum-col';
+    if(ws.count>0){
+      sc.innerHTML=
+        `<div class="sl">${ws.count} trade${ws.count>1?'s':''}</div>`+
+        `<div class="sv ${ws.pl>=0?'pos':'neg'}">${fmt(ws.pl)}</div>`+
+        `<div class="sm">${ws.wins}W ${ws.losses}L &middot; ${Math.round(ws.wins/ws.count*100)}%</div>`+
+        (ws.totalRR!=null?`<div class="srr ${rrClass(ws.totalRR)}">${fmtRR(ws.totalRR)}</div>`:'');
+    }
+    grid.appendChild(sc);
+  });
+
+  // Monthly header stats
+  const tot=calcStats(monthTrades);
+  const plEl=document.getElementById('hpl');
+  plEl.textContent=fmt(tot.pl);plEl.className=tot.pl>0?'pos':tot.pl<0?'neg':'neu';
+  document.getElementById('htrades').textContent=tot.count;
+  const wrEl=document.getElementById('hwr');
+  if(tot.count>0){const wr=Math.round(tot.wins/tot.count*100);wrEl.textContent=wr+'%';wrEl.className=wr>=50?'pos':'neg';}
+  else{wrEl.textContent='—';wrEl.className='neu';}
+  const rrEl=document.getElementById('hrr');
+  if(tot.totalRR!=null){rrEl.textContent=fmtRR(tot.totalRR);rrEl.className=rrClass(tot.totalRR);}
+  else{rrEl.textContent='—';rrEl.className='neu';}
+}
+
+function openModal(k,date){
+  selDate=k;wlSel='W';
+  document.getElementById('mtitle').textContent=date.getDate()+' '+MS[date.getMonth()]+' '+date.getFullYear();
+  document.getElementById('isym').value='';
+  document.getElementById('ipl').value='';
+  document.getElementById('irr').value='';
+  updWL();renderTList();renderDSum();
+  document.getElementById('modal').classList.add('open');
+}
+
+function renderDSum(){
+  const st=dayStats(selDate);
+  const wr=st.count>0?Math.round(st.wins/st.count*100):0;
+  document.getElementById('dsum').innerHTML=
+    `<div class="dbar-cell"><div class="dl">P/L</div><div class="dv ${st.pl>0?'pos':st.pl<0?'neg':''}">${fmt(st.pl)}</div></div>`+
+    `<div class="dbar-cell"><div class="dl">Trades</div><div class="dv">${st.count}</div></div>`+
+    `<div class="dbar-cell"><div class="dl">Win Rate</div><div class="dv ${st.count>0?(wr>=50?'pos':'neg'):''}">${st.count>0?wr+'%':'—'}</div></div>`+
+    `<div class="dbar-cell"><div class="dl">Wins</div><div class="dv pos">${st.wins}</div></div>`+
+    `<div class="dbar-cell"><div class="dl">Losses</div><div class="dv neg">${st.losses}</div></div>`+
+    `<div class="dbar-cell"><div class="dl">Total RR</div><div class="dv ${rrClass(st.totalRR)}">${fmtRR(st.totalRR)}</div></div>`;
+}
+
+function renderTList(){
+  const t=dayData(selDate);
+  const el=document.getElementById('tlist');
+  if(!t.length){el.innerHTML=`<div class="notrades">No trades yet</div>`;return;}
+  el.innerHTML=t.map((x,i)=>
+    `<div class="titem">`+
+    `<span class="tsym">${x.sym}</span>`+
+    `<span class="tpl ${x.pl>=0?'pos':'neg'}">${x.pl>=0?'+':''}${x.pl.toFixed(1)}</span>`+
+    `<span class="trr-val ${rrClass(x.rr)}">${x.rr!=null?fmtRR(x.rr):'—'}</span>`+
+    `<span class="tbadge ${x.wl==='W'?'w':'l'}">${x.wl==='W'?'Win':'Loss'}</span>`+
+    `<button class="dbtn" onclick="delT(${i})">&#215;</button>`+
+    `</div>`
+  ).join('');
+}
+
+function selWL(v){wlSel=v;updWL();}
+function updWL(){
+  document.getElementById('wbtn').className='wlb'+(wlSel==='W'?' ws':'');
+  document.getElementById('lbtn').className='wlb'+(wlSel==='L'?' ls':'');
+}
+
+function addTrade(){
+  const sym=document.getElementById('isym').value.trim().toUpperCase()||'N/A';
+  const pl=parseFloat(document.getElementById('ipl').value);
+  const rrRaw=document.getElementById('irr').value;
+  let rr=null;
+  if(rrRaw!==''&&!isNaN(parseFloat(rrRaw))){
+    const absRR=Math.abs(parseFloat(rrRaw));
+    // Win = positive RR, Loss = negative RR
+    rr=wlSel==='W'?absRR:-absRR;
+  }
+  if(isNaN(pl)){alert('Please enter a P/L value');return;}
+  if(!trades[selDate])trades[selDate]=[];
+  trades[selDate].push({sym,pl,rr,wl:wlSel});
+  save();renderTList();renderDSum();render();
+  document.getElementById('isym').value='';
+  document.getElementById('ipl').value='';
+  document.getElementById('irr').value='';
+  document.getElementById('isym').focus();
+}
+
+function delT(idx){
+  if(!trades[selDate])return;
+  trades[selDate].splice(idx,1);
+  if(!trades[selDate].length)delete trades[selDate];
+  save();renderTList();renderDSum();render();
+}
+
+function closeModal(){document.getElementById('modal').classList.remove('open');selDate=null;}
+function bgClose(e){if(e.target.id==='modal')closeModal();}
+function chMo(d){mo+=d;if(mo>11){mo=0;yr++;}else if(mo<0){mo=11;yr--;}render();}
+render();
+</script>
+</body>
+</html>
